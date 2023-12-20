@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano Play</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #fff3da;
+        }
+
+        .piano {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .key {
+            width: 40px;
+            height: 200px;
+            border: 1px solid #000;
+            cursor: pointer;
+            margin: 0 2px;
+            transition: background-color 0.2s;
+        }
+
+        .white-key {
+            background-color: #dfccfb;
+        }
+
+        .black-key {
+            width: 30px;
+            height: 120px;
+            background-color: #beadfa;
+            position: relative;
+            z-index: 1;
+            margin: 0 -15px;
+        }
+
+        .key.active {
+            background-color: #d0bfff;
+        }
+
+        .instruction {
+            text-align: center;
+            margin-top: 20px;
+            color: #333;
+        }
+
+        #playButton {
+            margin-top: 20px;
+        }
+
+        #stopButton {
+            margin-top: 10px;
+        }
+
+        #noteName {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        #noteCounter {
+            margin-top: 10px;
+        }
+
+        #tuneButtons {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="text-center">Piano Play</h1>
+    <div class="piano">
+        <div class="key white-key" data-note="C">C</div>
+        <div class="key black-key" data-note="C#">C#</div>
+        <div class="key white-key" data-note="D">D</div>
+        <div class="key black-key" data-note="D#">D#</div>
+        <div class="key white-key" data-note="E">E</div>
+        <div class="key white-key" data-note="F">F</div>
+        <div class="key black-key" data-note="F#">F#</div>
+        <div class="key white-key" data-note="G">G</div>
+        <div class="key black-key" data-note="G#">G#</div>
+        <div class="key white-key" data-note="A">A</div>
+        <div class="key black-key" data-note="A#">A#</div>
+        <div class="key white-key" data-note="B">B</div>
+    </div>
+    <p class="instruction"><b>Instruction</b> : Press on any key to listen to the note sound.</p>
+
+    <button id="playButton" class="btn btn-primary">Play Happy Birthday</button>
+    <button id="stopButton" class="btn btn-secondary">Stop</button>
+    <div id="noteName"></div>
+    <div id="noteCounter"></div>
+    <div id="tuneButtons">
+        <button class="btn btn-secondary" data-tune="twinkle">Play Twinkle Twinkle</button>
+        <button class="btn btn-secondary" data-tune="star">Play Star Wars</button>
+        <button class="btn btn-secondary" data-tune="odejoy">Play Ode to Joy</button>
+        <button class="btn btn-secondary" data-tune="einekleine">Play Eine kleine Nachtmusik</button>
+        <button class="btn btn-secondary" data-tune="danube">Play Blue Danube Waltz</button>
+        <button class="btn btn-secondary" data-tune="traviata">Play La Traviata</button>
+        <button class="btn btn-secondary" data-tune="valkyries">Play Ride of the Valkyries</button>
+        <button class="btn btn-secondary" data-tune="cancan">Play Can-Can</button>
+        <button class="btn btn-secondary" data-tune="furElise">Play Für Elise</button>
+        <button class="btn btn-secondary" data-tune="allaTurca">Play Alla Turca</button>
+    </div>
+
+    <script>
+        const keys = document.querySelectorAll('.key');
+        const playButton = document.getElementById('playButton');
+        const stopButton = document.getElementById('stopButton');
+        const noteNameDisplay = document.getElementById('noteName');
+        const noteCounterDisplay = document.getElementById('noteCounter');
+        const tuneButtons = document.querySelectorAll('[data-tune]');
+
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillators = {};
+
+        const notes = {
+            'C': 261.63,
+            'C#': 277.18,
+            'D': 293.66,
+            'D#': 311.13,
+            'E': 329.63,
+            'F': 349.23,
+            'F#': 369.99,
+            'G': 392.00,
+            'G#': 415.30,
+            'A': 440.00,
+            'A#': 466.16,
+            'B': 493.88
+        };
+
+        const noteCounters = {};
+        let currentTuneTimeouts = [];
+
+        keys.forEach(key => {
+            key.addEventListener('click', () => {
+                const note = key.getAttribute('data-note');
+                playSound(note);
+                noteNameDisplay.textContent = `Note: ${note}`;
+            });
+        });
+
+        tuneButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                stopTune();
+                const tune = button.getAttribute('data-tune');
+                playTune(tune);
+            });
+        });
+
+        stopButton.addEventListener('click', () => {
+            stopTune();
+            noteNameDisplay.textContent = '';
+        });
+
+        function playSound(note) {
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+
+            oscillator.frequency.value = notes[note];
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+
+            gainNode.gain.value = 0.5;
+
+            oscillator.start(context.currentTime);
+            oscillator.stop(context.currentTime + 0.5);
+        }
+
+        function playTune(tune) {
+            const tuneNotes = tunes[tune];
+            let delay = 0;
+
+            tuneNotes.forEach(note => {
+                const timeout = setTimeout(() => {
+                    playSound(note);
+                    noteNameDisplay.textContent = `Note: ${note}`;
+                }, delay);
+                currentTuneTimeouts.push(timeout);
+                delay += 500;
+            });
+        }
+
+        function stopTune() {
+            currentTuneTimeouts.forEach(timeout => clearTimeout(timeout));
+            currentTuneTimeouts = [];
+        }
+
+        playButton.addEventListener('click', () => playTune('happyBirthday'));
+
+        const tunes = {
+            'happyBirthday': ['C', 'C', 'D', 'C', 'F', 'E', 'C', 'C', 'D', 'C', 'G', 'F', 'C', 'C', 'C', 'A', 'F', 'E', 'D', 'B', 'B', 'A', 'F', 'G', 'F'],
+            'twinkle': ['C', 'C', 'G', 'G', 'A', 'A', 'G', 'F', 'F', 'E', 'E', 'D', 'D', 'C', 'G', 'G', 'F', 'F', 'E', 'E', 'D', 'G', 'G', 'F', 'F', 'E', 'E', 'D', 'C', 'C', 'G', 'G', 'A', 'A', 'G', 'F', 'F', 'E', 'E', 'D', 'D', 'C'],
+            'star': ['E', 'E', 'F', 'G', 'G', 'F', 'E', 'D', 'C', 'C', 'D', 'E', 'E', 'D', 'D', 'E', 'E', 'F', 'G', 'G', 'F', 'E', 'D', 'C', 'C', 'D', 'E', 'E', 'D', 'D', 'E', 'D', 'C', 'C', 'E', 'E', 'F', 'G', 'G', 'F', 'E', 'D', 'C', 'C', 'D', 'E', 'E', 'D', 'D', 'E'],
+            'odejoy': ['E', 'E', 'F', 'G', 'G', 'F', 'E', 'D', 'C', 'C', 'D', 'E', 'E', 'D', 'D', 'E', 'E', 'F', 'G', 'G', 'F', 'E', 'D', 'C', 'C', 'D', 'E', 'D', 'C', 'D', 'E', 'F', 'F', 'E', 'F', 'G', 'E', 'F', 'G', 'G', 'F', 'E', 'D', 'C', 'C', 'D', 'E', 'E', 'D', 'D', 'E'],
+            'einekleine': ['A', 'A', 'A', 'E', 'C#', 'E', 'F#', 'G#', 'G', 'A', 'A', 'A', 'E', 'C#', 'E', 'F#', 'G#', 'G', 'A', 'G#', 'F#', 'G#', 'A', 'F#', 'G#', 'A', 'A', 'A', 'E', 'C#', 'E', 'F#', 'G#', 'G', 'A', 'A', 'A', 'E', 'C#', 'E', 'F#', 'G#', 'G', 'A', 'G#', 'F#', 'G#', 'A', 'F#', 'G#', 'A', 'F#', 'G#'],
+            'danube': ['E', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D', 'B', 'C#', 'D', 'E', 'E', 'F#', 'G', 'A', 'B', 'A', 'G', 'F#', 'E', 'B', 'C#', 'D', 'E', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D', 'B', 'C#', 'D', 'E', 'E', 'F#', 'G', 'A', 'B', 'A', 'G', 'F#', 'E', 'B', 'C#', 'D', 'E', 'D', 'C#', 'B'],
+            'traviata': ['F#', 'G#', 'A', 'A#', 'A', 'G#', 'A', 'F#', 'G#', 'A', 'A#', 'A', 'G#', 'A', 'F#', 'G#', 'A', 'A#', 'A', 'G#', 'A', 'F#', 'G#', 'A', 'A#', 'A', 'G#', 'A', 'F#', 'G#', 'A', 'A#', 'A', 'G#', 'A', 'F#', 'G#', 'A', 'A#', 'A', 'G#', 'A', 'F#', 'G#', 'A', 'A#', 'A', 'G#', 'A', 'F#'],
+            'valkyries': ['D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D', 'E', 'F#'],
+            'cancan': ['E', 'D', 'C', 'D', 'E', 'E', 'E', 'E', 'F', 'G', 'A', 'B', 'C', 'B', 'A', 'G', 'F', 'E', 'E', 'E', 'E', 'F', 'G', 'A', 'B', 'C', 'B', 'A', 'G', 'F', 'E', 'E', 'C', 'B', 'A', 'B', 'C', 'C', 'C', 'C', 'D', 'E', 'F', 'G', 'A', 'G', 'F', 'E', 'D', 'C', 'C', 'C', 'C', 'D', 'E', 'F'],
+            'furElise': ['E', 'D#', 'E', 'D#', 'E', 'B', 'D', 'C', 'A', 'A#', 'B', 'E', 'E', 'B', 'D', 'C', 'A', 'A#', 'B', 'E', 'E', 'E', 'D#', 'E', 'D#', 'E', 'B', 'D', 'C', 'A', 'A#', 'B', 'E', 'E', 'B', 'D', 'C', 'A', 'A#', 'B', 'E', 'E', 'E', 'D#', 'E', 'D#', 'E', 'B', 'D', 'C', 'A', 'A#', 'B'],
+            'allaTurca': ['A', 'A', 'A', 'G#', 'E', 'E', 'E', 'A', 'A', 'A', 'G#', 'E', 'E', 'E', 'A', 'A', 'F#', 'F#', 'E', 'E', 'D', 'D', 'E', 'E', 'F#', 'F#', 'G#', 'G#', 'A', 'A', 'A', 'G#', 'E', 'E', 'E', 'A', 'A', 'A', 'G#', 'E', 'E', 'E', 'A', 'A', 'F#', 'F#', 'E', 'E', 'D', 'D', 'E', 'E']
+        };
+    </script>
+</body>
+</html>
